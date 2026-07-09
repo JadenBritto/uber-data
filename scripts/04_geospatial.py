@@ -58,18 +58,18 @@ NCR_CENTER = [28.6, 77.1]
 print("\n[1/5] Building pickup heatmap ...")
 m1 = folium.Map(location=NCR_CENTER, zoom_start=11,
                 tiles="CartoDB dark_matter")
-heat_data = geo_df[["pickup_lat", "pickup_lon"]].dropna().values.tolist()
+# Sample to 15K points -- sufficient density for a heatmap, cuts file size ~90%
+HEAT_SAMPLE = 15_000
+heat_src = geo_df[["pickup_lat", "pickup_lon"]].dropna()
+if len(heat_src) > HEAT_SAMPLE:
+    heat_src = heat_src.sample(HEAT_SAMPLE, random_state=42)
+heat_data = heat_src.values.tolist()
+print(f"  Heatmap points: {len(heat_data):,} (sampled from {geo_df['pickup_lat'].notna().sum():,})")
 HeatMap(heat_data, radius=10, blur=12, max_zoom=13,
         gradient={"0.3": "#0f3460", "0.6": "#e94560", "1.0": "#f5a623"}).add_to(m1)
-folium.map.Marker(
-    [29.1, 77.8],
-    icon=folium.DivIcon(html='<div style="color:white;font-size:14px;'
-                             'background:#1a1a2e;padding:5px;border-radius:4px">'
-                             '🔴 Pickup Density Heatmap -- NCR</div>')
-).add_to(m1)
 out1 = os.path.join(OUTDIR, "pickup_heatmap.html")
 m1.save(out1)
-print(f"  [OK] pickup_heatmap.html")
+print(f"  [OK] pickup_heatmap.html  ({os.path.getsize(out1)//1024} KB)")
 
 # -----------------------------------------------------------------------------
 # MAP 2 & 3: H3 hex grid -- demand + cancellation choropleth
@@ -112,36 +112,60 @@ if HAS_H3:
         }
 
 
-    def build_hex_map(stat_col, title, color_scale, out_name):
+    import branca.colormap as cm
+
+    def build_hex_map(stat_col, title, color_scale, out_name, min_bookings=5):
         m = folium.Map(location=NCR_CENTER, zoom_start=11,
                        tiles="CartoDB dark_matter")
-        vmin = hex_stats[stat_col].quantile(0.05)
-        vmax = hex_stats[stat_col].quantile(0.95)
 
-        import branca.colormap as cm
+        # Clip sparse hexagons to keep polygon count manageable
+        dense = hex_stats[hex_stats["bookings"] >= min_bookings].copy()
+        print(f"  Hex cells: {len(dense):,} (>= {min_bookings} bookings, "
+              f"{len(hex_stats)-len(dense):,} sparse cells dropped)")
+
+        vmin = dense[stat_col].quantile(0.05)
+        vmax = dense[stat_col].quantile(0.95)
         cmap = cm.linear.YlOrRd_09.scale(vmin, vmax)
         cmap.caption = title
 
-        for _, row in hex_stats.iterrows():
-            val = row[stat_col]
+        # Build one GeoJSON FeatureCollection -- single layer, much smaller than
+        # adding individual GeoJson() objects per hexagon
+        features = []
+        for _, row in dense.iterrows():
+            val   = row[stat_col]
             color = cmap(min(max(val, vmin), vmax))
-            geo = hex_boundary_geojson(row["h3_cell"])
-            folium.GeoJson(
-                geo,
-                style_function=lambda _, c=color: {
-                    "fillColor": c, "color": "#ffffff22",
-                    "weight": 0.5, "fillOpacity": 0.75
-                },
-                tooltip=folium.GeoJsonTooltip(
-                    fields=[],
-                    aliases=[],
-                    localize=True
-                )
-            ).add_to(m)
+            boundary_latlon = h3.cell_to_boundary(row["h3_cell"])
+            coords = [[lon, lat] for lat, lon in boundary_latlon]
+            coords.append(coords[0])
+            features.append({
+                "type": "Feature",
+                "geometry": {"type": "Polygon", "coordinates": [coords]},
+                "properties": {
+                    "fillColor": color,
+                    "bookings": int(row["bookings"]),
+                    "cancel_pct": round(row["cancellation_rate_pct"], 1),
+                    "avg_fare": round(row["avg_fare"], 0),
+                }
+            })
 
+        geojson_layer = folium.GeoJson(
+            {"type": "FeatureCollection", "features": features},
+            style_function=lambda f: {
+                "fillColor":   f["properties"]["fillColor"],
+                "color":       "#ffffff18",
+                "weight":      0.4,
+                "fillOpacity": 0.72,
+            },
+            tooltip=folium.GeoJsonTooltip(
+                fields=["bookings", "cancel_pct", "avg_fare"],
+                aliases=["Bookings", "Cancel %", "Avg Fare (Rs)"],
+                localize=True,
+            ),
+        )
+        geojson_layer.add_to(m)
         cmap.add_to(m)
 
-        # Mark top 10 centroids
+        # Top-10 centroid markers
         for _, row in top10.iterrows():
             clat, clon = hex_center(row["h3_cell"])
             folium.CircleMarker(
@@ -152,10 +176,10 @@ if HAS_H3:
 
         out_path = os.path.join(OUTDIR, out_name)
         m.save(out_path)
-        print(f"  [OK] {out_name}")
+        print(f"  [OK] {out_name}  ({os.path.getsize(out_path)//1024} KB)")
 
-    build_hex_map("bookings", "Booking Volume", "YlOrRd", "h3_demand_hex.html")
-    build_hex_map("cancellation_rate_pct", "Cancellation Rate %", "RdYlGn_r", "cancellation_rate_hex.html")
+    build_hex_map("bookings",             "Booking Volume",    "YlOrRd",   "h3_demand_hex.html")
+    build_hex_map("cancellation_rate_pct","Cancellation Rate %","RdYlGn_r","cancellation_rate_hex.html")
 
 else:
     print("[2/5] Skipping H3 maps (h3 not installed)")
@@ -222,12 +246,12 @@ fig5.update_layout(
     plot_bgcolor="#1a1a2e",
 )
 out5 = os.path.join(OUTDIR, "demand_animation.html")
-fig5.write_html(out5)
-print(f"  [OK] demand_animation.html")
+# include_plotlyjs='cdn' removes the 3.4 MB embedded plotly.js -- loads from CDN instead
+fig5.write_html(out5, include_plotlyjs="cdn", full_html=True)
+print(f"  [OK] demand_animation.html  ({os.path.getsize(out5)//1024} KB)")
 
-# -- Static PNG snapshots via Plotly (kaleido) ---------------------------------
+# -- Static PNG snapshot -------------------------------------------------------
 try:
-    # Simple static version for portfolio
     snap_df = anim_df.groupby(["Pickup Location","pickup_lat","pickup_lon"])["ride_count"].sum().reset_index()
     fig_snap = px.scatter_mapbox(
         snap_df, lat="pickup_lat", lon="pickup_lon",

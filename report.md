@@ -220,12 +220,11 @@ Forecasted demand (next 30 days) for top pickup zones:
 
 | Deliverable | Location | Status |
 |-------------|----------|--------|
-| `cleaned_uber_data.csv` | `data/` | [DONE] |
-| `locations_geocoded.csv` | `data/` | [DONE] |
-| EDA charts (12 PNGs) | `output/eda/` | [DONE] |
-| Geospatial HTML maps | `output/geo/` | [DONE] |
-| `hotspot_clusters.csv` | root | [DONE] |
-| `forecast_results.csv` | root | [DONE] |
-| `app.py` (Streamlit dashboard) | root | [DONE] |
-| `report.md` | root | [DONE] |
-
+| `cleaned_uber_data.csv` | `data/` | ✅ |
+| `locations_geocoded.csv` | `data/` | ✅ |
+| EDA charts (12 PNGs) | `output/eda/` | ✅ |
+| Geospatial HTML maps | `output/geo/` | ✅ |
+| `hotspot_clusters.csv` | root | ✅ |
+| `forecast_results.csv` | root | ✅ |
+| `app.py` (Streamlit dashboard) | root | ✅ |
+| `report.md` | root | ✅ |
