@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚗 Uber NCR Ride Analytics
+# Uber NCR Ride Analytics
 
 ### End-to-End Data Analytics & Geospatial Intelligence Platform
 
@@ -23,18 +23,18 @@
 
 | Metric | Value |
 |--------|-------|
-| 📅 Date Range | Jan 2024 – Dec 2024 |
-| 🎫 Total Bookings | 148,767 rides |
-| ✅ Success Rate | 62.01% (Completed) |
-| ❌ Cancellation Rate | 25.00% |
-| 💰 Average Fare | ₹508 |
-| 💵 Total Revenue | ₹51.4 M |
-| 📍 Unique Locations | 176 NCR zones |
-| 🚗 Vehicle Types | Auto, Bike, eBike, Go Mini, Go Sedan, Premier Sedan, Uber XL |
+| Date Range | Jan 2024 – Dec 2024 |
+| Total Bookings | 148,767 rides |
+| Success Rate | 62.01% (Completed) |
+| Cancellation Rate | 25.00% |
+| Average Fare | ₹508 |
+| Total Revenue | ₹51.4 M |
+| Unique Locations | 176 NCR zones |
+| Vehicle Types | Auto, Bike, eBike, Go Mini, Go Sedan, Premier Sedan, Uber XL |
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 Uber-Analytics/
@@ -77,7 +77,7 @@ Uber-Analytics/
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1 · Clone & set up the environment
 
@@ -198,7 +198,7 @@ streamlit run app.py
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Category | Libraries |
 |----------|-----------|
@@ -212,7 +212,7 @@ streamlit run app.py
 
 ---
 
-## 📁 Output File Sizes
+## Output File Sizes
 
 > All HTML maps optimised for web sharing:
 
@@ -226,7 +226,7 @@ streamlit run app.py
 
 ---
 
-## 📋 Deliverables Checklist
+## Deliverables Checklist
 
 - [x] `data/cleaned_uber_data.csv` — 148,767 rows · 37 columns
 - [x] `data/locations_geocoded.csv` — 174/176 NCR locations geocoded
@@ -239,7 +239,7 @@ streamlit run app.py
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
